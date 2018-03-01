@@ -3,20 +3,20 @@
 ##' @importFrom stats lm
 NULL
 
-## Calculate the summary statistics for each region
-## 
-## @param region a IRanges object with the regions of a certain chromosome
-## @param fwdReads a GRanges object with the forward reads of the ChIP-exo 
-## experiment
-## @param revReads a GRanges object with the reverse reads of the ChIP-exo 
-## experiment
-## 
-## @return stats a \code{DataFrame} object with the summary statistics 
-## necessary for the \code{ExoData}.
-## 
-## @rdname calculateSummary
-## @name calculateSummary
-## 
+##' Calculate the summary statistics for each region
+##' 
+##' @param region a IRanges object with the regions of a certain chromosome
+##' @param fwdReads a GRanges object with the forward reads of the ChIP-exo 
+##' experiment
+##' @param revReads a GRanges object with the reverse reads of the ChIP-exo 
+##' experiment
+##' 
+##' @return stats a \code{DataFrame} object with the summary statistics 
+##' necessary for the \code{ExoData}.
+##' 
+##' @rdname calculateSummary
+##' @name calculateSummary
+##' 
 calculateSummary <- function(region,fwdReads,revReads)
 {
     ## fix formats and stuff
@@ -54,10 +54,11 @@ calculateSummary <- function(region,fwdReads,revReads)
 }
 
 
-##' Calculates the quality parameters of one iteration
+##' calculateParamDist
 ##'  
-##' This function samples \code{nregions} rows from the stat matrix and 
-##' fits the linear model \code{lm(d ~ 0 + u + w)}
+##' \code{calculateParamDist} calculates the quality parameters of one iteration.
+##' This function samples \code{nregions} rows from the stat matrix and fits 
+##' the linear model \code{lm(d ~ 0 + u + w)}
 ##'  
 ##' @param i a numeric value indicating the current iteration.
 ##' @param stats a \code{data.table} object with the response and covariates for
@@ -65,6 +66,11 @@ calculateSummary <- function(region,fwdReads,revReads)
 ##' @param nregions a numeric value indicating the number of regions sampled.
 ##' 
 ##' @return a \code{data.table} with both parameters and some extra info
+##' 
+##' @examples
+##' data("exoExample")
+##' DT <- formatRegions(exoExample)
+##' calculateParamDist(1,DT,100)
 ##' 
 ##' @export
 ##' 
@@ -76,4 +82,30 @@ calculateParamDist <- function(i,stats,nregions)
     dt <- stats[sample(.N,nregions)]
     model <- lm(depth ~ 0 + uniquePos + width , data = dt)
     data.table(broom::tidy(model))
+}
+
+##' formatRegions
+##'  
+##' \code{formatRegions} separates the width, depth and uniquePos summary statistics from the \code{ExoData}
+##' object to calculate the quality parameters/
+##'  
+##' @param exo a \code{ExoData} object
+##' @return a \code{data.table} with the width, depth and uniquePos of the regions in \code{exo}.
+##' 
+##' @examples 
+##' data("exoExample")
+##' formatRegions(exoExample)
+##' 
+##' @export
+##' 
+##' @rdname formatRegions
+##' @name formatRegions
+## 
+formatRegions <- function(exo)
+{
+  depth <- uniquePos <- NULL
+  DT <- data.table(as.data.frame(mcols(exo)))
+  DT <- DT[,list(depth,uniquePos)]
+  DT <- DT[,width := width(exo)]
+  DT
 }

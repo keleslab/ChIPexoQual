@@ -9,9 +9,10 @@
 ##' @import GenomicRanges
 NULL
 
-##' Calculates the FSR distribution of all regions with depth > value
+##' .filterQuantiles
 ##'  
-##' Calculates the FSR distribution of all regions with depth > value
+##' \code{.filterQuantiles} Calculates the FSR distribution of all regions 
+##' with depth > value.
 ##'  
 ##' @param value a numeric value with the depth lower bound.
 ##' @param DF a \code{DataFrame} with depth and FSR.
@@ -169,7 +170,7 @@ MAplot <- function(...,names.input = NULL)
 ##' data(exoExample)
 ##' .ARCvURCDataFrame(exoExample,both.strand = FALSE)
 ##' .ARCvURCDataFrame(exoExample,both.strand = TRUE)
-.ARCvURCDataFrame = function(object,both.strand)
+.ARCvURCDataFrame <- function(object,both.strand)
 {
     fwdReads <- revReads <-  NULL
     
@@ -330,7 +331,7 @@ FSRDistplot <- function(...,names.input = NULL,
     p <- ggplot(FSRDataFrame,aes(depth,FSR,colour = as.factor(quantiles)))+
         geom_line(size = 1)+
         theme(legend.position = "top")+facet_grid(sample ~ .)+
-        scale_color_brewer(palette = "Dark2",name = "")+
+        scale_color_brewer(palette = "Dark2",name = "Quantile")+
         xlab("Minimum number of reads")+ylab("Forward Strand Ratio \n (FSR)")+
         ylim(0,1)
     p
@@ -399,9 +400,10 @@ regionCompplot <- function(...,names.input = NULL,
                           nsamples)
     names(regionList) <- NULL
     regionDataFrame <- .nameJoin(regionList,nms)
-    r <- brewer.pal(name = "Set1",3)
+    r <- brewer.pal(name = "Pastel1",3)
+    names(r) <- c("both","fwd","bwd")
     regionDataFrame <- regionDataFrame[,lab := 
-        factor(lab,levels = c("both","fwd","bwd"))]
+        factor(lab,levels = rev(names(r)))]
     
     theme_set(theme_bw())
     
@@ -410,7 +412,7 @@ regionCompplot <- function(...,names.input = NULL,
         geom_bar(stat = "identity")+
         theme(legend.position = "top")+
         facet_grid(sample ~ .)+
-        scale_fill_brewer(palette = "Pastel1",name = "Strand composition")+
+        scale_fill_manual(values = r, name = "Strand composition")+
         xlab("Minimum number of reads")+ylab("Proportion of regions")
     p
     
@@ -432,6 +434,9 @@ regionCompplot <- function(...,names.input = NULL,
 ##' plot. If it is empty \code{paramDistBoxplot} is going to create the 
 ##' names as the names of the list when they are available or is going to 
 ##' name them as Sample: 1 ,... , Sample: k.
+##' @param sort.as.numeric a logical value indicating if the values of 
+##' \code{names.input} are meant to be interpreted as numeric and sorted 
+##' accordingly.
 ##' 
 ##' @return A \code{ggplot2} object with the boxplot of the chosen 
 ##' parameter
@@ -442,12 +447,15 @@ regionCompplot <- function(...,names.input = NULL,
 ##' data(exoExample)
 ##' paramDistBoxplot(exoExample)
 paramDistBoxplot <- function(...,names.input = NULL,
-                            which.param = "beta1")
+                            which.param = "beta1",
+                            sort.as.numeric = FALSE)
 {
 
     lab <- depth <- prob <- NULL
     
     stopifnot(which.param %in% c("beta1","beta2"))
+    stopifnot(is.logical(sort.as.numeric))
+    
     args <- unlist(list(...))
     if(!is.null(names.input)){
         stopifnot(length(names.input) == length(args))
@@ -458,6 +466,12 @@ paramDistBoxplot <- function(...,names.input = NULL,
                           nsamples)
     names(paramList) <- NULL
     paramDataFrame <- .nameJoin(paramList,nms)
+
+    if(sort.as.numeric){
+        paramDataFrame$sample <- factor(paramDataFrame$sample,
+            levels = as.character(sort(as.numeric(nms))))
+    }
+    
     paramDataFrame$beta2 <- - paramDataFrame$beta2
     p <- ggplot(paramDataFrame,
                 aes_string(x = "sample",
